@@ -12,8 +12,8 @@ interface Event {
   venue: string;
   price: number;
   image: string;
-  availableSeats: number;
-  totalSeats: number;
+  available_seats: number;
+  total_seats: number;
   category: string;
   rating: number;
 }
@@ -24,6 +24,12 @@ interface EventCardProps {
 
 export const EventCard = ({ event }: EventCardProps) => {
   const navigate = useNavigate();
+  
+  const handleEventClick = () => {
+    // Always navigate to event details, the booking will be handled in the event details page
+    navigate(`/event/${event.id}`);
+  };
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -32,15 +38,6 @@ export const EventCard = ({ event }: EventCardProps) => {
       year: 'numeric'
     });
   };
-
-  const getSeatStatus = () => {
-    const percentage = (event.availableSeats / event.totalSeats) * 100;
-    if (percentage > 50) return { color: "success", text: "Available" };
-    if (percentage > 20) return { color: "warning", text: "Limited" };
-    return { color: "destructive", text: "Few Left" };
-  };
-
-  const seatStatus = getSeatStatus();
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden">
@@ -98,13 +95,19 @@ export const EventCard = ({ event }: EventCardProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center text-sm text-muted-foreground">
               <Users className="h-4 w-4 mr-1 text-primary" />
-              {event.availableSeats} / {event.totalSeats} seats
+              {event.available_seats} / {event.total_seats} seats
             </div>
             <Badge 
               variant="outline" 
-              className={`border-${seatStatus.color} text-${seatStatus.color}`}
+              className={`${
+                event.available_seats > event.total_seats * 0.5 
+                  ? 'border-green-500 text-green-600' 
+                  : event.available_seats > event.total_seats * 0.2 
+                    ? 'border-yellow-500 text-yellow-600' 
+                    : 'border-red-500 text-red-600'
+              }`}
             >
-              {seatStatus.text}
+              {event.available_seats > 0 ? `${event.available_seats} seats left` : 'Sold out'}
             </Badge>
           </div>
         </div>
@@ -115,13 +118,13 @@ export const EventCard = ({ event }: EventCardProps) => {
           <Button 
             variant="outline" 
             className="flex-1"
-            onClick={() => navigate(`/event/${event.id}`)}
+            onClick={handleEventClick}
           >
             View Details
           </Button>
           <Button 
             className="flex-1 gradient-primary text-white border-0"
-            onClick={() => navigate(`/event/${event.id}`)}
+            onClick={handleEventClick}
           >
             Book Now
           </Button>

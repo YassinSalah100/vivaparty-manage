@@ -37,8 +37,8 @@ const Index = () => {
             venue: event.venue,
             price: Number(event.price),
             image: event.image_url || '/placeholder.svg',
-            availableSeats: event.available_seats,
-            totalSeats: event.total_seats,
+            available_seats: event.available_seats,
+            total_seats: event.total_seats,
             category: "Event",
             rating: 4.5
           };
@@ -57,8 +57,8 @@ const Index = () => {
             venue: "Convention Center",
             price: 299,
             image: "/placeholder.svg",
-            availableSeats: 450,
-            totalSeats: 500,
+            available_seats: 450,
+            total_seats: 500,
             category: "Technology",
             rating: 4.8
           },
@@ -70,8 +70,8 @@ const Index = () => {
             venue: "Business Hub",
             price: 199,
             image: "/placeholder.svg",
-            availableSeats: 280,
-            totalSeats: 300,
+            available_seats: 280,
+            total_seats: 300,
             category: "Business",
             rating: 4.6
           },
@@ -83,8 +83,8 @@ const Index = () => {
             venue: "Art Gallery",
             price: 99,
             image: "/placeholder.svg",
-            availableSeats: 80,
-            totalSeats: 100,
+            available_seats: 80,
+            total_seats: 100,
             category: "Arts",
             rating: 4.9
           }

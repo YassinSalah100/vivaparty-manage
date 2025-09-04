@@ -77,7 +77,7 @@ BEGIN
     WHERE event_id = NEW.event_id
     AND seat_number = NEW.seat_number
     AND status NOT IN ('cancelled')
-    AND id != COALESCE(NEW.id, -1)
+    AND (NEW.id IS NULL OR id != NEW.id)
   ) THEN
     RAISE EXCEPTION 'This seat is already booked';
   END IF;

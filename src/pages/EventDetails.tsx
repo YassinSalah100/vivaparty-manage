@@ -47,9 +47,10 @@ interface TicketDetails {
   event_id: string;
   user_id: string;
   seat_number: string;
-  user?: {
+  profiles?: {
     full_name?: string;
     email?: string;
+    phone?: string;
   };
 }
 
@@ -66,7 +67,7 @@ const EventDetails = () => {
   const [ticketDetails, setTicketDetails] = useState<TicketDetails | null>(null);
   const [tickets, setTickets] = useState<TicketDetails[]>([]);
   const [bookedSeats, setBookedSeats] = useState<string[]>([]);
-  const [selectedSeat, setSelectedSeat] = useState<string>();
+  const [selectedSeat, setSelectedSeat] = useState<string>("");
 
   useEffect(() => {
     const init = async () => {
@@ -77,14 +78,27 @@ const EventDetails = () => {
         
         // Check auth
         const currentUser = await AuthService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          
-          // Check if admin
-          const session = await AuthService.getSession();
-          const isUserAdmin = session?.user?.user_metadata?.role === 'admin';
-          setIsAdmin(isUserAdmin);
+        if (!currentUser) {
+          // Redirect to auth with return URL
+          console.log(`User not logged in, redirecting to auth with return URL: /event/${id}`);
+          navigate("/auth", { 
+            state: { 
+              returnTo: `/event/${id}`,
+              message: "Please log in to view event details" 
+            },
+            replace: false // Don't replace history entry so back button still works
+          });
+          return;
         }
+        
+        console.log('User is authenticated:', currentUser.id);
+        
+        setUser(currentUser);
+        
+        // Check if admin
+        const session = await AuthService.getSession();
+        const isUserAdmin = session?.user?.user_metadata?.role === 'admin';
+        setIsAdmin(isUserAdmin);
 
         // Load initial data
         await refreshEventData();
@@ -183,7 +197,7 @@ const EventDetails = () => {
     
     if (!event) return;
     
-    if (!selectedSeat) {
+    if (!selectedSeat || selectedSeat === "") {
       toast({
         title: "Seat Required",
         description: "Please select a seat before booking",
@@ -220,28 +234,49 @@ const EventDetails = () => {
       }
       
       // Book ticket
-      const ticket = await TicketService.bookTicket({
+      console.log('Attempting to book ticket with data:', {
         event_id: event.id,
         user_id: user.id,
         price: Number(event.price),
         seat_number: selectedSeat
       });
       
-      if (!ticket) {
-        throw new Error('Failed to book ticket');
+      const ticketResponse = await TicketService.bookTicket({
+        event_id: event.id,
+        user_id: user.id,
+        price: Number(event.price),
+        seat_number: selectedSeat
+      });
+      
+      if (!ticketResponse) {
+        throw new Error('Failed to book ticket - no ticket returned');
       }
       
-      setTicketDetails(ticket);
+      console.log('Ticket booked successfully:', ticketResponse);
+      
+      // Extract the ticket details without the eventInfo property
+      const { eventInfo, ...ticketDetails } = ticketResponse;
+      setTicketDetails(ticketDetails as TicketDetails);
       setBookingConfirmed(true);
       
       // Add the newly booked seat to the booked seats array
       setBookedSeats([...latestBookedSeats, selectedSeat]);
       
-      // Update local event state to show reduced seat count immediately
-      setEvent({
-        ...latestEvent,
-        available_seats: latestEvent.available_seats - 1
-      });
+      // Update local event state with the latest seat count from the response, if available
+      if (eventInfo && typeof eventInfo.available_seats === 'number') {
+        console.log('Updating available seats from response:', eventInfo.available_seats);
+        setEvent({
+          ...latestEvent,
+          available_seats: eventInfo.available_seats
+        });
+      } else {
+        // Fall back to decrementing by 1
+        console.log('No seat info in response, using default decrement');
+        setEvent({
+          ...latestEvent,
+          available_seats: latestEvent.available_seats - 1
+        });
+      }
       
       toast({
         title: "Success",
@@ -256,10 +291,14 @@ const EventDetails = () => {
       });
       
       // Refresh event details and booked seats in case of error
-      const eventData = await EventService.getEventById(id!);
-      setEvent(eventData);
-      const bookedSeatsData = await EventService.getBookedSeats(id!);
-      setBookedSeats(bookedSeatsData);
+      try {
+        const eventData = await EventService.getEventById(id!);
+        setEvent(eventData);
+        const bookedSeatsData = await EventService.getBookedSeats(id!);
+        setBookedSeats(bookedSeatsData);
+      } catch (refreshError) {
+        console.error("Failed to refresh data after booking error:", refreshError);
+      }
     } finally {
       setIsLoading(false);
     }

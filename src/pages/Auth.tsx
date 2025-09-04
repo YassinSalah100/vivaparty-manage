@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,10 +14,15 @@ import { AuthService } from "@/services/auth.service";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [userType, setUserType] = useState<"organizer" | "attendee">("attendee");
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get return URL from location state
+  const returnTo = location.state?.returnTo || "/dashboard";
+  const authMessage = location.state?.message;
   
   // Form states
   const [signupForm, setSignupForm] = useState({
@@ -31,6 +36,17 @@ const Auth = () => {
     email: "",
     password: ""
   });
+
+  // Show auth message if provided
+  useEffect(() => {
+    if (authMessage) {
+      toast({
+        title: "Login Required",
+        description: authMessage,
+        variant: "default"
+      });
+    }
+  }, [authMessage, toast]);
   
   const handleSignupFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -67,10 +83,11 @@ const Auth = () => {
       
       toast({
         title: "Account created",
-        description: "Please check your email for verification link",
+        description: "Please check your email for verification link, then login below",
       });
       
-      // Auto-switch to login tab
+      // Auto-switch to login tab and pre-fill email
+      setLoginForm({ ...loginForm, email: signupForm.email });
       const loginTab = document.getElementById("login") as HTMLButtonElement;
       if (loginTab) loginTab.click();
       
@@ -112,7 +129,8 @@ const Auth = () => {
           description: "Successfully logged in"
         });
         
-        navigate("/dashboard");
+        // Redirect to the return URL or dashboard
+        navigate(returnTo);
       }
       
     } catch (error: unknown) {
@@ -170,7 +188,7 @@ const Auth = () => {
             </CardHeader>
 
             <CardContent>
-              <Tabs defaultValue="signup" className="w-full">
+              <Tabs defaultValue={returnTo !== "/dashboard" ? "login" : "signup"} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                   <TabsTrigger value="login">Login</TabsTrigger>
