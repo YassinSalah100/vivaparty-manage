@@ -13,6 +13,11 @@ export interface SignInCredentials {
   password: string;
 }
 
+export interface DeleteAccountResult {
+  success: boolean;
+  message: string;
+}
+
 export const AuthService = {
   /**
    * Sign up a new user
@@ -95,5 +100,26 @@ export const AuthService = {
     
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Delete user account and all associated data
+   */
+  async deleteAccount(): Promise<DeleteAccountResult> {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(
+        (await supabase.auth.getUser()).data.user?.id ?? ''
+      );
+      
+      if (error) throw error;
+      
+      return {
+        success: true,
+        message: 'Account successfully deleted'
+      };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      throw error;
+    }
   }
 };

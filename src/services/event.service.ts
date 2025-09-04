@@ -6,6 +6,8 @@ export type EventInsert = {
   title: string;
   description?: string;
   venue: string;
+  latitude?: number;
+  longitude?: number;
   event_date: string;
   price: number;
   total_seats: number;
@@ -62,22 +64,74 @@ export const EventService = {
   },
 
   /**
+   * Get booked seats for an event
+   */
+  async getBookedSeats(eventId: string) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('seat_number')
+      .eq('event_id', eventId)
+      .in('status', ['booked', 'used'])
+      .not('seat_number', 'is', null);
+
+    if (error) throw error;
+    // Filter out any null values and return unique seat numbers
+    const seatNumbers = data
+      .filter(ticket => ticket.seat_number !== null)
+      .map(ticket => ticket.seat_number);
+      
+    return seatNumbers as string[];
+  },
+
+  /**
    * Create a new event
    */
   async createEvent(event: EventInsert) {
-    const { data, error } = await supabase
-      .from('events')
-      .insert([
-        {
-          ...event,
-          available_seats: event.total_seats
-        }
-      ])
-      .select()
-      .single();
+    try {
+      // Check if user has permission to create events
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', event.created_by)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (!userProfile || userProfile.role !== 'admin') {
+        throw new Error('You do not have permission to create events');
+      }
+
+      // Add default values and sanitize data
+      const eventData = {
+        ...event,
+        available_seats: event.total_seats,
+        status: event.status || 'upcoming',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('An event with this title already exists');
+        }
+        if (error.code === '23503') {
+          throw new Error('Invalid user ID');
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Event creation error:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to create event');
+    }
   },
 
   /**

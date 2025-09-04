@@ -42,34 +42,103 @@ export const TicketService = {
    * Book a ticket
    */
   async bookTicket(ticket: TicketInsert) {
-    // First check if seats are available
-    const { data: eventData, error: eventError } = await supabase
-      .from('events')
-      .select('available_seats, price')
-      .eq('id', ticket.event_id)
-      .single();
-
-    if (eventError) throw eventError;
-    
-    if (eventData.available_seats <= 0) {
-      throw new Error('No seats available for this event');
-    }
-
-    // Book the ticket
-    const { data, error } = await supabase
-      .from('tickets')
-      .insert([
-        {
-          ...ticket,
-          ticket_number: `TKT-${Date.now()}`, // This will be overridden by the trigger
-          status: 'booked'
+    try {
+      // First, check if the seat is already booked
+      if (ticket.seat_number) {
+        const { data: existingTickets, error: checkError } = await supabase
+          .from('tickets')
+          .select('id, seat_number')
+          .eq('event_id', ticket.event_id)
+          .eq('seat_number', ticket.seat_number)
+          .in('status', ['booked', 'used']);
+          
+        if (checkError) throw checkError;
+        
+        if (existingTickets && existingTickets.length > 0) {
+          throw new Error('This seat has already been booked');
         }
-      ])
-      .select()
-      .single();
+      }
 
-    if (error) throw error;
-    return data;
+      // Start a transaction
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('available_seats, price')
+        .eq('id', ticket.event_id)
+        .single();
+
+      if (eventError) throw eventError;
+      
+      if (!eventData || eventData.available_seats <= 0) {
+        throw new Error('No seats available for this event');
+      }
+
+      // First create the ticket
+      const { data: newTicket, error: ticketError } = await supabase
+        .from('tickets')
+        .insert([{
+          ...ticket,
+          booking_date: new Date().toISOString(),
+          status: 'booked',
+          ticket_number: `TKT-${Date.now()}`,
+          qr_code: `EVENT-${ticket.event_id}-USER-${ticket.user_id}-${Date.now()}`
+        }])
+        .select('*')
+        .single();
+
+      if (ticketError) throw ticketError;
+
+      // Then update the event's available seats
+      const { data: updatedEvent, error: updateError } = await supabase
+        .from('events')
+        .update({ 
+          available_seats: eventData.available_seats - 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', ticket.event_id)
+        .select()
+        .single();
+
+      if (updateError) {
+        // If updating event fails, delete the ticket we just created
+        await supabase
+          .from('tickets')
+          .delete()
+          .eq('id', newTicket.id);
+          
+        throw updateError;
+      }
+
+      return newTicket;
+
+      // Then book the ticket
+      const { data, error } = await supabase
+        .from('tickets')
+        .insert([
+          {
+            ...ticket,
+            ticket_number: `TKT-${Date.now()}`, // This will be overridden by the trigger
+            status: 'booked',
+            qr_code: `EVENT-${ticket.event_id}-USER-${ticket.user_id}-${Date.now()}`
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        // If there was an error creating the ticket, revert the seat count
+        await supabase
+          .from('events')
+          .update({ available_seats: eventData.available_seats })
+          .eq('id', ticket.event_id);
+          
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error booking ticket:", error);
+      throw error;
+    }
   },
 
   /**

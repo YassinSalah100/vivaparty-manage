@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AuthService } from "@/services/auth.service";
 import { TicketService } from "@/services/ticket.service";
 import { ProfileService } from "@/services/profile.service";
+import { supabase } from "@/integrations/supabase/client";
 import { QRCodeCanvas } from 'qrcode.react';
 
 interface UserProfile {
@@ -413,9 +414,39 @@ const Profile = () => {
                         <h3 className="text-lg font-medium mb-4">Delete Account</h3>
                         <Button 
                           variant="destructive"
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                              // Handle account deletion
+                              try {
+                                setIsLoading(true);
+                                const user = await AuthService.getCurrentUser();
+                                if (!user) {
+                                  throw new Error("No user found");
+                                }
+                                
+                                // Delete the user's profile first
+                                // First mark the profile as deleted
+                                await ProfileService.deleteProfile(user.id);
+                                
+                                // Then delete the auth user from their session
+                                await supabase.auth.signOut();
+                                
+                                toast({
+                                  title: "Account Deleted",
+                                  description: "Your account has been successfully deleted. You can register again if you wish.",
+                                });
+                                
+                                // Redirect to home page
+                                navigate("/");
+                              } catch (error) {
+                                console.error("Failed to delete account:", error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to delete your account. Please try again.",
+                                  variant: "destructive"
+                                });
+                              } finally {
+                                setIsLoading(false);
+                              }
                             }
                           }}
                         >

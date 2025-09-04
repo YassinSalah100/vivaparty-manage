@@ -70,5 +70,55 @@ export const ProfileService = {
 
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Delete user profile and associated data
+   */
+  async deleteProfile(userId: string) {
+    try {
+      // Get user's email before deletion for verification
+      const { data: user } = await supabase.auth.getUser();
+      const userEmail = user?.user?.email;
+
+      if (!userEmail) {
+        throw new Error('User email not found');
+      }
+
+      // Delete tickets first
+      const { error: ticketsError } = await supabase
+        .from('tickets')
+        .delete()
+        .eq('user_id', userId);
+
+      if (ticketsError) throw ticketsError;
+
+      // Update events to closed
+      const { error: eventsError } = await supabase
+        .from('events')
+        .update({ status: 'closed' })
+        .eq('created_by', userId);
+
+      if (eventsError) throw eventsError;
+
+      // Mark profile as deleted
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          deleted_at: new Date().toISOString(),
+          email: null
+        })
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
+
+      // Sign out the user
+      await supabase.auth.signOut();
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      throw error;
+    }
   }
 };

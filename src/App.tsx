@@ -10,6 +10,7 @@ import EventDetails from "./pages/EventDetails";
 import EditEvent from "./pages/EditEvent";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import EmailVerificationSuccess from "./pages/EmailVerificationSuccess";
 
 // Suppress React Router warnings
 // This is a temporary solution until you can update to React Router v7
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/event/:id" element={<EventDetails />} />
           <Route path="/edit-event/:id" element={<EditEvent />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/email-verification-success" element={<EmailVerificationSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

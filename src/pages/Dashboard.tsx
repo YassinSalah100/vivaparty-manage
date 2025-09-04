@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ValidationService } from "@/services/validation.service";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Users, TrendingUp, Ticket, Plus, Edit, Trash2, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -115,35 +116,53 @@ const Dashboard = () => {
   };
   
   const handleCreateEvent = async () => {
-    if (!newEvent.title || !newEvent.venue || !newEvent.event_date) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
       setIsCreating(true);
+      
+      if (!user?.id) {
+        throw new Error("Please log in to create events");
+      }
       
       // Combine date and time
       const dateTime = new Date(`${newEvent.event_date}T${newEvent.time}`);
       
-      await EventService.createEvent({
-        title: newEvent.title,
-        description: newEvent.description,
-        venue: newEvent.venue,
+      // Prepare event data
+      const eventData = {
+        title: newEvent.title.trim(),
+        description: newEvent.description?.trim(),
+        venue: newEvent.venue.trim(),
         event_date: dateTime.toISOString(),
         price: Number(newEvent.price),
         total_seats: Number(newEvent.total_seats),
-        created_by: user?.id || "",
-        image_url: newEvent.image_url || undefined
-      });
+        created_by: user.id,
+        image_url: newEvent.image_url?.trim() || undefined,
+        status: 'upcoming' as const
+      };
+
+      // Validate event data
+      const validationErrors = ValidationService.validateEvent(eventData);
+      
+      if (validationErrors.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: (
+            <ul className="list-disc pl-4">
+              {validationErrors.map((error, index) => (
+                <li key={index}>{error.message}</li>
+              ))}
+            </ul>
+          ),
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create the event
+      await EventService.createEvent(eventData);
       
       toast({
         title: "Success",
-        description: "Event created successfully"
+        description: "Event created successfully",
       });
       
       // Reset form and close dialog
@@ -160,9 +179,13 @@ const Dashboard = () => {
       setIsCreateDialogOpen(false);
       
       // Reload events
-      loadEvents();
+      await loadEvents();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create event";
+      console.error('Event creation error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to create event. Please try again.";
+      
       toast({
         title: "Error",
         description: errorMessage,
@@ -342,9 +365,9 @@ const Dashboard = () => {
                   <Button 
                     className="gradient-primary text-white border-0" 
                     onClick={handleCreateEvent}
-                    disabled={isLoading}
+                    disabled={isCreating}
                   >
-                    {isLoading ? "Creating..." : "Create Event"}
+                    {isCreating ? "Creating..." : "Create Event"}
                   </Button>
                 </DialogFooter>
               </DialogContent>

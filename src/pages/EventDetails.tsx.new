@@ -7,36 +7,13 @@ import { Calendar, MapPin, Clock, Users, Share2, ArrowLeft, BarChart, ChevronRig
 import { Ticket as TicketIcon } from "lucide-react";
 import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useToast } from "@/components/ui/use-toast";
-import { AuthService } from "@/services/auth.service";
-import { EventService } from "@/services/event.service";
-import { TicketService } from "@/services/ticket.service";
-import { Navbar } from "@/components/Navbar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { QRCodeCanvas } from 'qrcode.react';
-import SeatSelector from "@/components/SeatSelector";
-import { supabase } from "@/integrations/supabase/client";
 
-interface EventWithProfiles {
-  id: string;
-  title: string;
-  description: string | null;
-  venue: string;
-  event_date: string;
-  price: number;
-  total_seats: number;
-  available_seats: number;
-  status: string;
-  image_url: string | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  latitude: number | null;
-  longitude: number | null;
+interface EventWithProfiles extends Event {
   profiles?: {
     full_name?: string;
   };
+  latitude?: number;
+  longitude?: number;
 }
 
 interface TicketDetails {
@@ -46,7 +23,6 @@ interface TicketDetails {
   status: string;
   event_id: string;
   user_id: string;
-  seat_number: string;
   user?: {
     full_name?: string;
     email?: string;
@@ -65,8 +41,6 @@ const EventDetails = () => {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [ticketDetails, setTicketDetails] = useState<TicketDetails | null>(null);
   const [tickets, setTickets] = useState<TicketDetails[]>([]);
-  const [bookedSeats, setBookedSeats] = useState<string[]>([]);
-  const [selectedSeat, setSelectedSeat] = useState<string>();
 
   useEffect(() => {
     const init = async () => {
@@ -82,12 +56,19 @@ const EventDetails = () => {
           
           // Check if admin
           const session = await AuthService.getSession();
-          const isUserAdmin = session?.user?.user_metadata?.role === 'admin';
-          setIsAdmin(isUserAdmin);
+          const role = session?.user?.user_metadata?.role;
+          setIsAdmin(role === 'admin');
         }
+        
+        // Load event details
+        const eventData = await EventService.getEventById(id);
+        setEvent(eventData);
 
-        // Load initial data
-        await refreshEventData();
+        // Load tickets if admin
+        if (role === 'admin') {
+          const ticketData = await TicketService.getEventTickets(id);
+          setTickets(ticketData);
+        }
       } catch (error) {
         console.error("Failed to load event details:", error);
         toast({
@@ -101,74 +82,8 @@ const EventDetails = () => {
       }
     };
     
-    // Function to refresh all event data
-    const refreshEventData = async () => {
-      if (!id) return;
-      
-      try {
-        // Load event details
-        const eventData = await EventService.getEventById(id);
-        setEvent(eventData);
-        
-        // Load booked seats
-        const bookedSeatsData = await EventService.getBookedSeats(id);
-        setBookedSeats(bookedSeatsData);
-
-        // Load tickets if admin
-        if (isAdmin) {
-          const ticketData = await TicketService.getEventTickets(id);
-          setTickets(ticketData);
-        }
-      } catch (error) {
-        console.error("Failed to refresh event data:", error);
-      }
-    };
-    
     init();
-
-    // Set up real-time subscription for tickets
-    const ticketsSubscription = supabase
-      .channel('tickets-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tickets',
-          filter: `event_id=eq.${id}`
-        },
-        () => {
-          refreshEventData();
-        }
-      )
-      .subscribe();
-
-    // Set up real-time subscription for event updates
-    const eventsSubscription = supabase
-      .channel('events-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'events',
-          filter: `id=eq.${id}`
-        },
-        () => {
-          refreshEventData();
-        }
-      )
-      .subscribe();
-
-    // Also set up polling as a fallback
-    const refreshInterval = setInterval(refreshEventData, 10000); // 10 seconds
-    
-    return () => {
-      clearInterval(refreshInterval);
-      ticketsSubscription.unsubscribe();
-      eventsSubscription.unsubscribe();
-    };
-  }, [id, navigate, toast, isAdmin]);
+  }, [id, navigate, toast]);
 
   const handleBookTicket = async () => {
     if (!user) {
@@ -183,39 +98,16 @@ const EventDetails = () => {
     
     if (!event) return;
     
-    if (!selectedSeat) {
-      toast({
-        title: "Seat Required",
-        description: "Please select a seat before booking",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
       setIsLoading(true);
       
-      // Get latest event data
-      const latestEvent = await EventService.getEventById(id!);
-      if (!latestEvent || latestEvent.available_seats <= 0) {
+      // Check if seats available
+      if (event.available_seats <= 0) {
         toast({
           title: "Sold Out",
           description: "Sorry, this event is sold out",
           variant: "destructive"
         });
-        setEvent(latestEvent);
-        return;
-      }
-      
-      // Get latest booked seats
-      const latestBookedSeats = await EventService.getBookedSeats(id!);
-      if (latestBookedSeats.includes(selectedSeat)) {
-        toast({
-          title: "Seat Unavailable",
-          description: "This seat was just taken by another user. Please select a different seat.",
-          variant: "destructive"
-        });
-        setBookedSeats(latestBookedSeats);
         return;
       }
       
@@ -223,25 +115,15 @@ const EventDetails = () => {
       const ticket = await TicketService.bookTicket({
         event_id: event.id,
         user_id: user.id,
-        price: Number(event.price),
-        seat_number: selectedSeat
+        price: Number(event.price)
       });
-      
-      if (!ticket) {
-        throw new Error('Failed to book ticket');
-      }
       
       setTicketDetails(ticket);
       setBookingConfirmed(true);
       
-      // Add the newly booked seat to the booked seats array
-      setBookedSeats([...latestBookedSeats, selectedSeat]);
-      
-      // Update local event state to show reduced seat count immediately
-      setEvent({
-        ...latestEvent,
-        available_seats: latestEvent.available_seats - 1
-      });
+      // Refresh event details to get updated seat count
+      const updatedEvent = await EventService.getEventById(id!);
+      setEvent(updatedEvent);
       
       toast({
         title: "Success",
@@ -251,15 +133,9 @@ const EventDetails = () => {
       console.error("Failed to book ticket:", error);
       toast({
         title: "Booking Failed",
-        description: error instanceof Error ? error.message : "Failed to book ticket. Please try again.",
+        description: "Failed to book ticket. Please try again.",
         variant: "destructive"
       });
-      
-      // Refresh event details and booked seats in case of error
-      const eventData = await EventService.getEventById(id!);
-      setEvent(eventData);
-      const bookedSeatsData = await EventService.getBookedSeats(id!);
-      setBookedSeats(bookedSeatsData);
     } finally {
       setIsLoading(false);
     }
@@ -351,10 +227,7 @@ const EventDetails = () => {
               <div className="flex flex-wrap gap-4 mb-8">
                 <Button 
                   className="gradient-primary text-white border-0"
-                  onClick={() => {
-                    setSelectedSeat(undefined);
-                    setIsBookingDialogOpen(true);
-                  }}
+                  onClick={() => setIsBookingDialogOpen(true)}
                   disabled={event.available_seats <= 0 || isAdmin}
                 >
                   <TicketIcon className="mr-2 h-4 w-4" />
@@ -501,28 +374,18 @@ const EventDetails = () => {
               </CardHeader>
               <CardContent>
                 <div className="aspect-video bg-muted rounded-md overflow-hidden mb-4">
-                  {import.meta.env.VITE_GOOGLE_MAPS_API_KEY && 
-                   import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== 'your_google_maps_api_key_here' ? (
-                    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                      <Map
-                        defaultZoom={15}
-                        defaultCenter={{ lat: event.latitude || 0, lng: event.longitude || 0 }}
-                        style={{ width: '100%', height: '100%' }}
-                      >
-                        <Marker
-                          position={{ lat: event.latitude || 0, lng: event.longitude || 0 }}
-                          title={event.venue}
-                        />
-                      </Map>
-                    </APIProvider>
-                  ) : (
-                    <div className="h-full w-full flex flex-col items-center justify-center">
-                      <MapPin className="h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground text-center">
-                        Map view unavailable. Please configure your Google Maps API key.
-                      </p>
-                    </div>
-                  )}
+                  <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+                    <Map
+                      defaultZoom={15}
+                      defaultCenter={{ lat: event.latitude || 0, lng: event.longitude || 0 }}
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      <Marker
+                        position={{ lat: event.latitude || 0, lng: event.longitude || 0 }}
+                        title={event.venue}
+                      />
+                    </Map>
+                  </APIProvider>
                 </div>
                 
                 <div className="space-y-4">
@@ -578,23 +441,19 @@ const EventDetails = () => {
                             <div className="flex items-center space-x-4">
                               <Avatar>
                                 <AvatarFallback>
-                                  {ticket.profiles?.full_name?.substring(0, 2).toUpperCase() || 'U'}
+                                  {ticket.user?.full_name?.substring(0, 2).toUpperCase() || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <h4 className="font-medium">{ticket.profiles?.full_name || 'Anonymous'}</h4>
-                                <p className="text-sm text-muted-foreground">{ticket.profiles?.email || 'No email provided'}</p>
+                                <h4 className="font-medium">{ticket.user?.full_name}</h4>
+                                <p className="text-sm text-muted-foreground">{ticket.user?.email}</p>
                               </div>
                             </div>
                             <div className="flex items-center space-x-4">
                               <Badge variant={ticket.status === 'booked' ? 'default' : 'secondary'}>
                                 {ticket.status}
                               </Badge>
-                              <Badge variant="outline" className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {ticket.seat_number || 'No seat'}
-                              </Badge>
-                              <Button variant="ghost" size="sm" title="View QR Code">
+                              <Button variant="ghost" size="sm">
                                 <QrCode className="h-4 w-4" />
                               </Button>
                             </div>
@@ -651,22 +510,6 @@ const EventDetails = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Select Your Seat</h3>
-                  <SeatSelector 
-                    totalRows={4}
-                    seatsPerRow={8}
-                    bookedSeats={bookedSeats}
-                    onSelectSeat={setSelectedSeat}
-                    selectedSeat={selectedSeat}
-                  />
-                  {selectedSeat ? (
-                    <p className="text-center mt-2 text-sm font-medium">Selected Seat: {selectedSeat}</p>
-                  ) : (
-                    <p className="text-center mt-2 text-sm text-muted-foreground">Please select a seat</p>
-                  )}
-                </div>
-                
                 <div className="bg-muted p-4 rounded-md">
                   <h3 className="font-medium mb-2">Important Notes</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
@@ -721,17 +564,6 @@ const EventDetails = () => {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
                     <p>{formatDate(event.event_date)}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 w-full mb-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Seat</h3>
-                    <p className="font-medium">{ticketDetails?.seat_number}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Price</h3>
-                    <p className="font-medium">${Number(event.price).toFixed(2)}</p>
                   </div>
                 </div>
                 

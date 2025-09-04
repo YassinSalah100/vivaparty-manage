@@ -23,6 +23,8 @@ export type Database = {
           event_date: string
           id: string
           image_url: string | null
+          latitude: number | null
+          longitude: number | null
           price: number
           status: string | null
           title: string

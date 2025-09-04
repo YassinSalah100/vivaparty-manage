@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { EventService, type Event } from "@/services/event.service";
 import { AuthService } from "@/services/auth.service";
 import { ArrowLeft, Save, Calendar, Clock, MapPin, Upload, Users } from "lucide-react";
+import { geocodeAddress } from "@/lib/geocoding";
 
 const EditEvent = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,41 @@ const EditEvent = () => {
   });
 
   useEffect(() => {
+    const loadEventData = async (eventId: string) => {
+      try {
+        setIsLoading(true);
+        const eventData = await EventService.getEventById(eventId);
+        setEvent(eventData);
+        
+        // Format date and time
+        const eventDate = new Date(eventData.event_date);
+        const formattedDate = eventDate.toISOString().split('T')[0];
+        const formattedTime = eventDate.toTimeString().slice(0, 5);
+        
+        setUpdatedEvent({
+          title: eventData.title,
+          description: eventData.description || "",
+          venue: eventData.venue,
+          eventDate: formattedDate,
+          eventTime: formattedTime,
+          price: Number(eventData.price),
+          total_seats: eventData.total_seats,
+          image_url: eventData.image_url || ""
+        });
+        
+      } catch (error) {
+        console.error("Failed to load event:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load event data",
+          variant: "destructive"
+        });
+        navigate("/dashboard");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const checkAuth = async () => {
       try {
         // Check if user is logged in
@@ -56,7 +92,7 @@ const EditEvent = () => {
         
         // Load event data
         if (id) {
-          loadEventData(id);
+          await loadEventData(id);
         } else {
           setIsLoading(false);
         }
@@ -69,41 +105,6 @@ const EditEvent = () => {
     
     checkAuth();
   }, [id, navigate, toast]);
-  
-  const loadEventData = async (eventId: string) => {
-    try {
-      setIsLoading(true);
-      const eventData = await EventService.getEventById(eventId);
-      setEvent(eventData);
-      
-      // Format date and time
-      const eventDate = new Date(eventData.event_date);
-      const formattedDate = eventDate.toISOString().split('T')[0];
-      const formattedTime = eventDate.toTimeString().slice(0, 5);
-      
-      setUpdatedEvent({
-        title: eventData.title,
-        description: eventData.description || "",
-        venue: eventData.venue,
-        eventDate: formattedDate,
-        eventTime: formattedTime,
-        price: Number(eventData.price),
-        total_seats: eventData.total_seats,
-        image_url: eventData.image_url || ""
-      });
-      
-    } catch (error) {
-      console.error("Failed to load event:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load event data",
-        variant: "destructive"
-      });
-      navigate("/dashboard");
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -119,10 +120,15 @@ const EditEvent = () => {
       // Combine date and time
       const dateTime = new Date(`${updatedEvent.eventDate}T${updatedEvent.eventTime}`);
       
+      // Get coordinates for the venue
+      const coordinates = await geocodeAddress(updatedEvent.venue);
+      
       await EventService.updateEvent(id, {
         title: updatedEvent.title,
         description: updatedEvent.description,
         venue: updatedEvent.venue,
+        latitude: coordinates?.lat,
+        longitude: coordinates?.lng,
         event_date: dateTime.toISOString(),
         price: updatedEvent.price,
         total_seats: updatedEvent.total_seats,
@@ -137,11 +143,11 @@ const EditEvent = () => {
       
       navigate(`/event/${id}`);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to update event:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update event",
+        description: error instanceof Error ? error.message : "Failed to update event",
         variant: "destructive"
       });
     } finally {
