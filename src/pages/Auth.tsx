@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +8,124 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Eye, EyeOff, UserCheck, Building } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthService } from "@/services/auth.service";
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [userType, setUserType] = useState<"organizer" | "attendee">("attendee");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form states
+  const [signupForm, setSignupForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    organization: "",
+  });
+  
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: ""
+  });
+  
+  const handleSignupFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setSignupForm({ ...signupForm, [id]: value });
+  };
+  
+  const handleLoginFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    const fieldName = id === 'email' ? 'email' : id === 'password' ? 'password' : id;
+    setLoginForm({ ...loginForm, [fieldName]: value });
+  };
+  
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!signupForm.fullName || !signupForm.email || !signupForm.password) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      await AuthService.signUp({
+        fullName: signupForm.fullName,
+        email: signupForm.email,
+        password: signupForm.password,
+        role: userType === "organizer" ? "admin" : "user"
+      });
+      
+      toast({
+        title: "Account created",
+        description: "Please check your email for verification link",
+      });
+      
+      // Auto-switch to login tab
+      const loginTab = document.getElementById("login") as HTMLButtonElement;
+      if (loginTab) loginTab.click();
+      
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create account";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!loginForm.email || !loginForm.password) {
+      toast({
+        title: "Error",
+        description: "Please enter email and password",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      const { session } = await AuthService.signIn({
+        email: loginForm.email,
+        password: loginForm.password
+      });
+      
+      if (session) {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in"
+        });
+        
+        navigate("/dashboard");
+      }
+      
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Invalid email or password";
+      toast({
+        title: "Login failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,64 +177,81 @@ const Auth = () => {
                 </TabsList>
 
                 <TabsContent value="signup" className="space-y-4 mt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Enter your full name"
-                      className="transition-smooth focus:ring-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      className="transition-smooth focus:ring-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
-                        className="transition-smooth focus:ring-primary pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {userType === "organizer" && (
+                  <form onSubmit={handleSignup}>
                     <div className="space-y-2">
-                      <Label htmlFor="organization">Organization</Label>
+                      <Label htmlFor="fullName">Full Name</Label>
                       <Input
-                        id="organization"
-                        placeholder="Your company or organization"
+                        id="fullName"
+                        placeholder="Enter your full name"
                         className="transition-smooth focus:ring-primary"
+                        value={signupForm.fullName}
+                        onChange={handleSignupFormChange}
+                        required
                       />
                     </div>
-                  )}
 
-                  <Button className="w-full gradient-primary text-white border-0 mt-6">
-                    Create {userType === "organizer" ? "Organizer" : "Attendee"} Account
-                  </Button>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        className="transition-smooth focus:ring-primary"
+                        value={signupForm.email}
+                        onChange={handleSignupFormChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create a strong password"
+                          className="transition-smooth focus:ring-primary pr-10"
+                          value={signupForm.password}
+                          onChange={handleSignupFormChange}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {userType === "organizer" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="organization">Organization</Label>
+                        <Input
+                          id="organization"
+                          placeholder="Your company or organization"
+                          className="transition-smooth focus:ring-primary"
+                          value={signupForm.organization}
+                          onChange={handleSignupFormChange}
+                        />
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit"
+                      className="w-full gradient-primary text-white border-0 mt-6"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Creating Account..." : `Create ${userType === "organizer" ? "Organizer" : "Attendee"} Account`}
+                    </Button>
+                  </form>
 
                   <div className="text-center">
                     <Badge variant="secondary" className="text-xs">
@@ -132,50 +264,85 @@ const Auth = () => {
                 </TabsContent>
 
                 <TabsContent value="login" className="space-y-4 mt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      className="transition-smooth focus:ring-primary"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <div className="relative">
+                  <form onSubmit={handleLogin}>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
                       <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        className="transition-smooth focus:ring-primary pr-10"
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        className="transition-smooth focus:ring-primary"
+                        value={loginForm.email}
+                        onChange={handleLoginFormChange}
+                        required
                       />
-                      <Button
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          className="transition-smooth focus:ring-primary pr-10"
+                          value={loginForm.password}
+                          onChange={handleLoginFormChange}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <Button 
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowPassword(!showPassword)}
+                        variant="link" 
+                        className="text-sm text-primary p-0"
+                        onClick={() => {
+                          const email = prompt("Enter your email address");
+                          if (email) {
+                            AuthService.resetPassword(email)
+                              .then(() => {
+                                toast({
+                                  title: "Password reset email sent",
+                                  description: "Check your email for a reset link"
+                                });
+                              })
+                              .catch((error) => {
+                                toast({
+                                  title: "Error",
+                                  description: error.message || "Failed to send reset email",
+                                  variant: "destructive"
+                                });
+                              });
+                          }
+                        }}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        Forgot password?
                       </Button>
                     </div>
-                  </div>
 
-                  <div className="flex justify-between items-center">
-                    <Button variant="link" className="text-sm text-primary p-0">
-                      Forgot password?
+                    <Button 
+                      type="submit"
+                      className="w-full gradient-primary text-white border-0 mt-6"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Signing In..." : "Sign In"}
                     </Button>
-                  </div>
-
-                  <Button className="w-full gradient-primary text-white border-0 mt-6">
-                    Sign In
-                  </Button>
+                  </form>
 
                   <div className="text-center">
                     <Badge variant="secondary" className="text-xs">

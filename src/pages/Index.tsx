@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,52 +7,95 @@ import { CalendarDays, Users, TrendingUp, Ticket, ArrowRight, Star } from "lucid
 import { Navbar } from "@/components/Navbar";
 import { EventCard } from "@/components/EventCard";
 import { StatsCard } from "@/components/StatsCard";
+import { EventService } from "@/services/event.service";
 import heroImage from "@/assets/hero-events.jpg";
 
 const Index = () => {
   const [userType, setUserType] = useState<"admin" | "user" | null>(null);
+  const navigate = useNavigate();
+  const [featuredEvents, setFeaturedEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const featuredEvents = [
-    {
-      id: 1,
-      title: "Tech Innovation Summit 2024",
-      date: "2024-03-15",
-      time: "09:00 AM",
-      venue: "Convention Center",
-      price: 299,
-      image: "/placeholder.svg",
-      availableSeats: 450,
-      totalSeats: 500,
-      category: "Technology",
-      rating: 4.8
-    },
-    {
-      id: 2,
-      title: "Digital Marketing Conference",
-      date: "2024-03-20",
-      time: "10:00 AM",
-      venue: "Business Hub",
-      price: 199,
-      image: "/placeholder.svg",
-      availableSeats: 280,
-      totalSeats: 300,
-      category: "Business",
-      rating: 4.6
-    },
-    {
-      id: 3,
-      title: "Creative Arts Workshop",
-      date: "2024-03-25",
-      time: "02:00 PM",
-      venue: "Art Gallery",
-      price: 99,
-      image: "/placeholder.svg",
-      availableSeats: 80,
-      totalSeats: 100,
-      category: "Arts",
-      rating: 4.9
-    }
-  ];
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        const events = await EventService.getEvents({ 
+          status: 'upcoming',
+          limit: 3,
+          orderBy: 'event_date'
+        });
+
+        // Transform the events to match the EventCard component format
+        const formattedEvents = events.map(event => {
+          const eventDate = new Date(event.event_date);
+          return {
+            id: event.id,
+            title: event.title,
+            date: eventDate.toISOString().split('T')[0],
+            time: eventDate.toTimeString().slice(0, 5),
+            venue: event.venue,
+            price: Number(event.price),
+            image: event.image_url || '/placeholder.svg',
+            availableSeats: event.available_seats,
+            totalSeats: event.total_seats,
+            category: "Event",
+            rating: 4.5
+          };
+        });
+
+        setFeaturedEvents(formattedEvents);
+      } catch (error) {
+        console.error("Failed to load events:", error);
+        // Fallback to dummy data if API fails
+        setFeaturedEvents([
+          {
+            id: 1,
+            title: "Tech Innovation Summit 2024",
+            date: "2024-03-15",
+            time: "09:00 AM",
+            venue: "Convention Center",
+            price: 299,
+            image: "/placeholder.svg",
+            availableSeats: 450,
+            totalSeats: 500,
+            category: "Technology",
+            rating: 4.8
+          },
+          {
+            id: 2,
+            title: "Digital Marketing Conference",
+            date: "2024-03-20",
+            time: "10:00 AM",
+            venue: "Business Hub",
+            price: 199,
+            image: "/placeholder.svg",
+            availableSeats: 280,
+            totalSeats: 300,
+            category: "Business",
+            rating: 4.6
+          },
+          {
+            id: 3,
+            title: "Creative Arts Workshop",
+            date: "2024-03-25",
+            time: "02:00 PM",
+            venue: "Art Gallery",
+            price: 99,
+            image: "/placeholder.svg",
+            availableSeats: 80,
+            totalSeats: 100,
+            category: "Arts",
+            rating: 4.9
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
 
   const stats = [
     { label: "Events Hosted", value: "2,500+", icon: CalendarDays, trend: "+12%" },
@@ -171,7 +215,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   className="bg-white text-primary hover:bg-white/90 shadow-primary"
-                  onClick={() => setUserType("admin")}
+                  onClick={() => navigate("/auth")}
                 >
                   Start as Organizer
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -180,7 +224,7 @@ const Index = () => {
                   size="lg" 
                   variant="outline" 
                   className="border-white text-white hover:bg-white/10"
-                  onClick={() => setUserType("user")}
+                  onClick={() => navigate("/auth")}
                 >
                   Browse Events
                 </Button>
@@ -239,16 +283,29 @@ const Index = () => {
               <EventCard key={event.id} event={event} />
             ))}
           </div>
-          <div className="text-center">
-            <Button 
-              size="lg" 
-              className="gradient-primary text-white border-0"
-              onClick={() => setUserType("user")}
-            >
-              View All Events
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
+          {userType === "user" ? (
+            <div className="text-center">
+              <Button 
+                size="lg" 
+                className="gradient-primary text-white border-0"
+                onClick={() => navigate("/auth")}
+              >
+                View All Events
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <Button 
+                size="lg" 
+                className="gradient-primary text-white border-0"
+                onClick={() => navigate("/auth")}
+              >
+                View All Events
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </section>
     </div>

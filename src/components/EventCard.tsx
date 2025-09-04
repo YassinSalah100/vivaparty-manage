@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, Users, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Event {
-  id: number;
+  id: number | string;
   title: string;
   date: string;
   time: string;
@@ -22,6 +23,7 @@ interface EventCardProps {
 }
 
 export const EventCard = ({ event }: EventCardProps) => {
+  const navigate = useNavigate();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -45,7 +47,11 @@ export const EventCard = ({ event }: EventCardProps) => {
       <CardHeader className="p-0">
         <div className="relative">
           <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-            <Calendar className="h-12 w-12 text-primary/30" />
+            {event.image && event.image !== '/placeholder.svg' ? (
+              <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+            ) : (
+              <Calendar className="h-12 w-12 text-primary/30" />
+            )}
           </div>
           <div className="absolute top-3 left-3">
             <Badge className="gradient-primary text-white border-0">
@@ -106,10 +112,17 @@ export const EventCard = ({ event }: EventCardProps) => {
 
       <CardFooter className="p-4 pt-0">
         <div className="flex gap-2 w-full">
-          <Button variant="outline" className="flex-1">
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={() => navigate(`/event/${event.id}`)}
+          >
             View Details
           </Button>
-          <Button className="flex-1 gradient-primary text-white border-0">
+          <Button 
+            className="flex-1 gradient-primary text-white border-0"
+            onClick={() => navigate(`/event/${event.id}`)}
+          >
             Book Now
           </Button>
         </div>

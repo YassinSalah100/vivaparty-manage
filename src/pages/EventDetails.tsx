@@ -1,0 +1,535 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, MapPin, Clock, Users, Share2, ArrowLeft, BarChart, ChevronRight } from "lucide-react";
+import { Ticket as TicketIcon } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
+import { useToast } from "@/components/ui/use-toast";
+import { EventService, type Event } from "@/services/event.service";
+import { TicketService } from "@/services/ticket.service";
+import { AuthService } from "@/services/auth.service";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { QRCodeCanvas } from 'qrcode.react';
+
+interface EventWithProfiles extends Event {
+  profiles?: {
+    full_name?: string;
+  };
+}
+
+interface TicketDetails {
+  id: string;
+  ticket_number: string;
+  qr_code: string;
+  status: string;
+  event_id: string;
+  user_id: string;
+}
+
+const EventDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [event, setEvent] = useState<EventWithProfiles | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<{id: string} | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [ticketDetails, setTicketDetails] = useState<TicketDetails | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Check auth
+        const currentUser = await AuthService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          
+          // Check if admin
+          const session = await AuthService.getSession();
+          const role = session?.user?.user_metadata?.role;
+          setIsAdmin(role === 'admin');
+        }
+        
+        // Load event details
+        const eventData = await EventService.getEventById(id);
+        setEvent(eventData);
+      } catch (error) {
+        console.error("Failed to load event details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load event details",
+          variant: "destructive"
+        });
+        navigate("/");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    init();
+  }, [id, navigate, toast]);
+  
+  const handleBookTicket = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to book tickets",
+        variant: "destructive"
+      });
+      navigate("/auth");
+      return;
+    }
+    
+    if (!event) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Check if seats available
+      if (event.available_seats <= 0) {
+        toast({
+          title: "Sold Out",
+          description: "Sorry, this event is sold out",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Book ticket
+      const ticket = await TicketService.bookTicket({
+        event_id: event.id,
+        user_id: user.id,
+        price: Number(event.price)
+      });
+      
+      setTicketDetails(ticket);
+      setBookingConfirmed(true);
+      
+      // Refresh event details to get updated seat count
+      const updatedEvent = await EventService.getEventById(id!);
+      setEvent(updatedEvent);
+      
+      toast({
+        title: "Success",
+        description: "Ticket booked successfully"
+      });
+    } catch (error) {
+      console.error("Failed to book ticket:", error);
+      toast({
+        title: "Booking Failed",
+        description: "Failed to book ticket. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+  
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+  
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <h1 className="text-3xl font-bold mb-4">Event Not Found</h1>
+          <p className="text-muted-foreground mb-8">The event you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate(-1)} className="gradient-primary text-white border-0">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar userType={isAdmin ? "admin" : user ? "user" : undefined} />
+      
+      {/* Event Header */}
+      <div className="bg-gradient-to-b from-primary/10 to-background py-8">
+        <div className="container mx-auto px-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-4"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-2">
+              <Badge className="mb-4 gradient-primary text-white border-0">
+                {event.status === 'upcoming' ? 'Upcoming' : event.status === 'active' ? 'Active' : 'Closed'}
+              </Badge>
+              <h1 className="text-3xl sm:text-4xl font-bold mb-4">{event.title}</h1>
+              
+              <div className="flex flex-wrap gap-6 mb-6 text-muted-foreground">
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2 text-primary" />
+                  <span>{formatDate(event.event_date)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-primary" />
+                  <span>{formatTime(event.event_date)}</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2 text-primary" />
+                  <span>{event.venue}</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-4 mb-8">
+                <Button 
+                  className="gradient-primary text-white border-0"
+                  onClick={() => setIsBookingDialogOpen(true)}
+                  disabled={event.available_seats <= 0 || isAdmin}
+                >
+                  <TicketIcon className="mr-2 h-4 w-4" />
+                  {event.available_seats > 0 ? 'Book Ticket' : 'Sold Out'}
+                </Button>
+                
+                <Button variant="outline">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Event
+                </Button>
+                
+                {isAdmin && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(`/edit-event/${event.id}`)}
+                  >
+                    <BarChart className="mr-2 h-4 w-4" />
+                    Manage Event
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Event Details</CardTitle>
+                <CardDescription>Important information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Price</span>
+                    <span className="font-semibold">${Number(event.price).toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Available Seats</span>
+                    <Badge variant={event.available_seats > 0 ? "outline" : "destructive"}>
+                      {event.available_seats} / {event.total_seats}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        event.status === 'upcoming' 
+                          ? 'text-blue-500 border-blue-500' 
+                          : event.status === 'active' 
+                            ? 'text-green-500 border-green-500' 
+                            : 'text-red-500 border-red-500'
+                      }
+                    >
+                      {event.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Organizer</span>
+                    <span>{event.profiles?.full_name || 'Event Organizer'}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+      
+      {/* Event Content */}
+      <div className="container mx-auto px-4 py-12">
+        <Tabs defaultValue="details">
+          <TabsList className="mb-8">
+            <TabsTrigger value="details">Event Details</TabsTrigger>
+            <TabsTrigger value="location">Location</TabsTrigger>
+            {isAdmin && <TabsTrigger value="attendees">Attendees</TabsTrigger>}
+          </TabsList>
+          
+          <TabsContent value="details" className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>About This Event</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose max-w-none">
+                  {event.description ? (
+                    <p>{event.description}</p>
+                  ) : (
+                    <p className="text-muted-foreground">No description provided for this event.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>What to Expect</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-4">
+                  <li className="flex items-start">
+                    <div className="mr-3 mt-1">
+                      <div className="h-6 w-6 rounded-full gradient-primary flex items-center justify-center">
+                        <ChevronRight className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Event Check-in</h3>
+                      <p className="text-muted-foreground">Doors open 30 minutes before the event starts. Please bring your ticket for seamless entry.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="mr-3 mt-1">
+                      <div className="h-6 w-6 rounded-full gradient-primary flex items-center justify-center">
+                        <ChevronRight className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Amenities</h3>
+                      <p className="text-muted-foreground">Refreshments will be available for purchase at the venue.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="mr-3 mt-1">
+                      <div className="h-6 w-6 rounded-full gradient-primary flex items-center justify-center">
+                        <ChevronRight className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Cancellation Policy</h3>
+                      <p className="text-muted-foreground">Tickets can be refunded up to 24 hours before the event start time.</p>
+                    </div>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="location">
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Location</CardTitle>
+                <CardDescription>{event.venue}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video bg-muted rounded-md flex items-center justify-center mb-4">
+                  <MapPin className="h-12 w-12 text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">Map view would be displayed here</span>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium">Address</h3>
+                    <p className="text-muted-foreground">{event.venue}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium">Getting There</h3>
+                    <p className="text-muted-foreground">
+                      Directions and transportation options would be provided here.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {isAdmin && (
+            <TabsContent value="attendees">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Attendees</CardTitle>
+                  <CardDescription>People who have booked tickets for this event</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>Attendee management would be displayed here</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+      
+      {/* Booking Dialog */}
+      <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          {!bookingConfirmed ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Book Event Ticket</DialogTitle>
+                <DialogDescription>
+                  Review the details before confirming your booking
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Event</h3>
+                    <p className="font-medium">{event.title}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
+                    <p>{formatDate(event.event_date)}</p>
+                    <p>{formatTime(event.event_date)}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Venue</h3>
+                    <p>{event.venue}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Price</h3>
+                    <p className="font-medium">${Number(event.price).toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-muted p-4 rounded-md">
+                  <h3 className="font-medium mb-2">Important Notes</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Tickets are non-transferable</li>
+                    <li>• Please bring ID for verification</li>
+                    <li>• Arrive 15 minutes before event starts</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  className="gradient-primary text-white border-0" 
+                  onClick={handleBookTicket}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Processing..." : "Confirm Booking"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Booking Confirmed!</DialogTitle>
+                <DialogDescription>
+                  Your ticket has been successfully booked
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="py-6 flex flex-col items-center justify-center">
+                <div className="bg-white p-2 rounded-md mb-4">
+                  <QRCodeCanvas 
+                    value={ticketDetails?.qr_code || 'invalid'} 
+                    size={200} 
+                    level="H"
+                  />
+                </div>
+                
+                <div className="text-center mb-4">
+                  <h3 className="font-bold text-xl">{ticketDetails?.ticket_number}</h3>
+                  <p className="text-muted-foreground">Ticket ID</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Event</h3>
+                    <p className="font-medium">{event.title}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
+                    <p>{formatDate(event.event_date)}</p>
+                  </div>
+                </div>
+                
+                <Badge className="gradient-primary text-white border-0">
+                  Ticket Confirmed
+                </Badge>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  className="w-full gradient-primary text-white border-0" 
+                  onClick={() => {
+                    setIsBookingDialogOpen(false);
+                    setBookingConfirmed(false);
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default EventDetails;

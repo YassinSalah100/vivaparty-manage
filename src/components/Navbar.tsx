@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Menu, X, User, Settings, LogOut, Calendar, BarChart3 } from "lucide-react";
@@ -8,6 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ userType }: NavbarProps) => {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -18,7 +20,7 @@ export const Navbar = ({ userType }: NavbarProps) => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-white" />
               </div>
@@ -28,13 +30,24 @@ export const Navbar = ({ userType }: NavbarProps) => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/dashboard")}
+              >
                 Dashboard
               </Button>
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/dashboard")}
+              >
                 Events
               </Button>
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analytics
               </Button>
@@ -51,13 +64,21 @@ export const Navbar = ({ userType }: NavbarProps) => {
                   3
                 </Badge>
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate("/profile")}
+              >
                 <User className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="sm">
                 <Settings className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/auth")}
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
@@ -74,7 +95,7 @@ export const Navbar = ({ userType }: NavbarProps) => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-white" />
               </div>
@@ -83,13 +104,25 @@ export const Navbar = ({ userType }: NavbarProps) => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/")}
+              >
                 Discover
               </Button>
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/profile")}
+              >
                 My Events
               </Button>
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Button 
+                variant="ghost" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate("/profile")}
+              >
                 My Tickets
               </Button>
             </div>
@@ -102,10 +135,18 @@ export const Navbar = ({ userType }: NavbarProps) => {
                   2
                 </Badge>
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate("/profile")}
+              >
                 <User className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate("/auth")}
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
@@ -122,7 +163,7 @@ export const Navbar = ({ userType }: NavbarProps) => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
               <Calendar className="h-5 w-5 text-white" />
             </div>
@@ -147,8 +188,18 @@ export const Navbar = ({ userType }: NavbarProps) => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost">Login</Button>
-            <Button className="gradient-primary text-white border-0">Get Started</Button>
+            <Button 
+              variant="ghost"
+              onClick={() => navigate("/auth")}
+            >
+              Login
+            </Button>
+            <Button 
+              className="gradient-primary text-white border-0"
+              onClick={() => navigate("/auth")}
+            >
+              Get Started
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -168,8 +219,19 @@ export const Navbar = ({ userType }: NavbarProps) => {
               <Button variant="ghost" className="justify-start">About</Button>
               <Button variant="ghost" className="justify-start">Contact</Button>
               <div className="flex space-x-2 pt-2">
-                <Button variant="ghost" className="flex-1">Login</Button>
-                <Button className="flex-1 gradient-primary text-white border-0">Get Started</Button>
+                <Button 
+                  variant="ghost" 
+                  className="flex-1"
+                  onClick={() => navigate("/auth")}
+                >
+                  Login
+                </Button>
+                <Button 
+                  className="flex-1 gradient-primary text-white border-0"
+                  onClick={() => navigate("/auth")}
+                >
+                  Get Started
+                </Button>
               </div>
             </div>
           </div>
