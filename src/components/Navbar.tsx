@@ -56,8 +56,8 @@ export const Navbar = ({ userType }: NavbarProps) => {
               </Button>
             </div>
 
-            {/* User Actions */}
-            <div className="flex items-center space-x-2">
+            {/* User Actions - Desktop */}
+            <div className="hidden md:flex items-center space-x-2">
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs gradient-primary text-white border-0">
@@ -83,7 +83,82 @@ export const Navbar = ({ userType }: NavbarProps) => {
                 Logout
               </Button>
             </div>
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center space-x-1">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs gradient-primary text-white border-0">
+                  3
+                </Badge>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={toggleMenu}>
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
+          
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden py-4 border-t border-border">
+              <div className="flex flex-col space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/dashboard");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Dashboard
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/dashboard");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Events
+                </Button>
+                <Button variant="ghost" className="justify-start">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Analytics
+                </Button>
+                <Button variant="ghost" className="justify-start">
+                  Attendees
+                </Button>
+                <hr className="border-border my-2" />
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Button>
+                <Button variant="ghost" className="justify-start">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start mt-2"
+                  onClick={() => {
+                    navigate("/auth");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     );
@@ -127,8 +202,8 @@ export const Navbar = ({ userType }: NavbarProps) => {
               </Button>
             </div>
 
-            {/* User Actions */}
-            <div className="flex items-center space-x-2">
+            {/* User Actions - Desktop */}
+            <div className="hidden md:flex items-center space-x-2">
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs gradient-primary text-white border-0">
@@ -151,7 +226,81 @@ export const Navbar = ({ userType }: NavbarProps) => {
                 Logout
               </Button>
             </div>
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center space-x-1">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs gradient-primary text-white border-0">
+                  2
+                </Badge>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={toggleMenu}>
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
+          
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden py-4 border-t border-border">
+              <div className="flex flex-col space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Discover
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  My Events
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  My Tickets
+                </Button>
+                <hr className="border-border my-2" />
+                <Button 
+                  variant="ghost" 
+                  className="justify-start"
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="justify-start mt-2"
+                  onClick={() => {
+                    navigate("/auth");
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     );

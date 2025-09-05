@@ -197,49 +197,49 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-hero opacity-90" />
-        <div className="relative container mx-auto px-4 py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="text-white space-y-6">
-              <Badge className="gradient-accent text-white border-0 mb-4">
+        <div className="relative container mx-auto px-4 py-12 sm:py-16 lg:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="text-white space-y-4 sm:space-y-6">
+              <Badge className="gradient-accent text-white border-0 mb-2 sm:mb-4 text-xs sm:text-sm">
                 🎉 Trusted by 10,000+ Event Organizers
               </Badge>
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 Your Events, 
                 <span className="block text-accent-light">Simplified</span>
               </h1>
-              <p className="text-xl text-white/90 max-w-xl">
+              <p className="text-base sm:text-lg lg:text-xl text-white/90 max-w-xl">
                 Create, manage, and grow your events with EventX Studio. 
                 From small workshops to large conferences - we've got you covered.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Button 
-                  size="lg" 
-                  className="bg-white text-primary hover:bg-white/90 shadow-primary"
+                  size="default" 
+                  className="bg-white text-primary hover:bg-white/90 shadow-primary text-sm sm:text-base"
                   onClick={() => navigate("/auth")}
                 >
                   Start as Organizer
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
                 <Button 
-                  size="lg" 
+                  size="default" 
                   variant="outline" 
-                  className="border-white text-white hover:bg-white/10 bg-transparent"
+                  className="border-white text-white hover:bg-white/10 bg-transparent text-sm sm:text-base"
                   onClick={() => navigate("/auth")}
                 >
                   Browse Events
                 </Button>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative mt-6 lg:mt-0 hidden sm:block">
               <img 
                 src={heroImage} 
                 alt="Event Management Platform" 
-                className="rounded-2xl shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500"
+                className="rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500"
               />
-              <div className="absolute -top-4 -left-4 bg-white p-4 rounded-xl shadow-lg">
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                  <span className="font-semibold">4.9/5 Rating</span>
+              <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 bg-white p-2 sm:p-4 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 fill-current" />
+                  <span className="font-semibold text-sm sm:text-base">4.9/5 Rating</span>
                 </div>
               </div>
             </div>

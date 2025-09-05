@@ -92,10 +92,10 @@ export const EventCard = ({ event }: EventCardProps) => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-y-2">
             <div className="flex items-center text-sm text-muted-foreground">
-              <Users className="h-4 w-4 mr-1 text-primary" />
-              {event.available_seats} / {event.total_seats} seats
+              <Users className="h-4 w-4 mr-1 text-primary flex-shrink-0" />
+              <span className="truncate">{event.available_seats} / {event.total_seats} seats</span>
             </div>
             <Badge 
               variant="outline" 
@@ -105,7 +105,7 @@ export const EventCard = ({ event }: EventCardProps) => {
                   : event.available_seats > event.total_seats * 0.2 
                     ? 'border-yellow-500 text-yellow-600' 
                     : 'border-red-500 text-red-600'
-              }`}
+              } whitespace-nowrap`}
             >
               {event.available_seats > 0 ? `${event.available_seats} seats left` : 'Sold out'}
             </Badge>

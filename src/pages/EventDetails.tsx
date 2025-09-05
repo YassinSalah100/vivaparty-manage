@@ -353,7 +353,7 @@ const EventDetails = () => {
       <Navbar userType={isAdmin ? "admin" : user ? "user" : undefined} />
       
       {/* Event Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background py-8">
+      <div className="bg-gradient-to-b from-primary/10 to-background py-4 sm:py-8">
         <div className="container mx-auto px-4">
           <Button 
             variant="ghost" 
@@ -365,59 +365,60 @@ const EventDetails = () => {
             Back
           </Button>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
             <div className="lg:col-span-2">
-              <Badge className="mb-4 gradient-primary text-white border-0">
+              <Badge className="mb-3 gradient-primary text-white border-0">
                 {event.status === 'upcoming' ? 'Upcoming' : event.status === 'active' ? 'Active' : 'Closed'}
               </Badge>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-4">{event.title}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{event.title}</h1>
               
-              <div className="flex flex-wrap gap-6 mb-6 text-muted-foreground">
+              <div className="flex flex-wrap gap-3 sm:gap-6 mb-6 text-muted-foreground">
                 <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-primary" />
-                  <span>{formatDate(event.event_date)}</span>
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 text-primary flex-shrink-0" />
+                  <span className="text-sm sm:text-base">{formatDate(event.event_date)}</span>
                 </div>
                 <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-primary" />
-                  <span>{formatTime(event.event_date)}</span>
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 text-primary flex-shrink-0" />
+                  <span className="text-sm sm:text-base">{formatTime(event.event_date)}</span>
                 </div>
                 <div className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2 text-primary" />
-                  <span>{event.venue}</span>
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 text-primary flex-shrink-0" />
+                  <span className="text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">{event.venue}</span>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-4 mb-8">
+              <div className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8">
                 <Button 
-                  className="gradient-primary text-white border-0"
+                  className="gradient-primary text-white border-0 text-sm sm:text-base"
                   onClick={() => {
                     setSelectedSeat(undefined);
                     setIsBookingDialogOpen(true);
                   }}
                   disabled={event.available_seats <= 0 || isAdmin}
                 >
-                  <TicketIcon className="mr-2 h-4 w-4" />
+                  <TicketIcon className="mr-1 sm:mr-2 h-4 w-4" />
                   {event.available_seats > 0 ? 'Book Ticket' : 'Sold Out'}
                 </Button>
                 
-                <Button variant="outline">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share Event
+                <Button variant="outline" className="text-sm sm:text-base">
+                  <Share2 className="mr-1 sm:mr-2 h-4 w-4" />
+                  Share
                 </Button>
                 
                 {isAdmin && (
                   <Button 
                     variant="outline"
                     onClick={() => navigate(`/edit-event/${event.id}`)}
+                    className="text-sm sm:text-base"
                   >
-                    <BarChart className="mr-2 h-4 w-4" />
-                    Manage Event
+                    <BarChart className="mr-1 sm:mr-2 h-4 w-4" />
+                    Manage
                   </Button>
                 )}
               </div>
             </div>
             
-            <Card>
+            <Card className="lg:mt-0 mt-2">
               <CardHeader className="pb-2">
                 <CardTitle>Event Details</CardTitle>
                 <CardDescription>Important information</CardDescription>
@@ -454,7 +455,7 @@ const EventDetails = () => {
                   
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-muted-foreground">Organizer</span>
-                    <span>{event.profiles?.full_name || 'Event Organizer'}</span>
+                    <span className="truncate max-w-[150px] text-right">{event.profiles?.full_name || 'Event Organizer'}</span>
                   </div>
                 </div>
               </CardContent>
