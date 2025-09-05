@@ -1,0 +1,194 @@
+# EventX Studio - Event Management Platform
+
+![EventX Studio](./src/assets/hero-events.jpg)
+
+EventX Studio is a comprehensive event management platform built with React, TypeScript, and Supabase. The platform enables event organizers to create, manage, and grow their events while providing attendees with a seamless booking experience.
+
+## ✨ Features
+
+### For Event Organizers
+- **Event Creation & Management**: Create, edit, and manage events with ease
+- **Advanced Analytics**: Track ticket sales, attendance, and revenue metrics
+- **Attendee Management**: View and manage attendee lists and information
+- **Seat Allocation System**: Set up customized seating arrangements for events
+
+### For Attendees
+- **Event Discovery**: Browse and search for upcoming events
+- **Seamless Booking**: Book tickets with an interactive seat selection interface
+- **Mobile-friendly Experience**: Fully responsive design optimized for all devices
+- **QR Code Tickets**: Access digital tickets with unique QR codes
+- **Account Management**: Track booked events and manage personal information
+
+## 🚀 Technologies
+
+- **Frontend**: React, TypeScript, Vite, TailwindCSS, Shadcn UI
+- **State Management**: React Context API, React Query
+- **Backend**: Supabase (PostgreSQL, Authentication, Storage)
+- **Maps Integration**: Google Maps API
+- **Deployment**: Vercel
+
+## 📦 Project Structure
+
+```
+vivaparty-manage/
+├── src/                      # Source files
+│   ├── assets/               # Static assets
+│   ├── components/           # Reusable React components
+│   │   └── ui/               # UI component library (Shadcn)
+│   ├── hooks/                # Custom React hooks
+│   ├── integrations/         # Third-party integrations
+│   │   └── supabase/         # Supabase client and types
+│   ├── lib/                  # Utility functions
+│   ├── pages/                # Page components
+│   └── services/             # API services
+├── supabase/                 # Supabase configuration
+│   └── migrations/           # Database migrations
+├── public/                   # Public assets
+│   └── _redirects            # Netlify routing config
+├── email-templates/          # Email templates
+├── vercel.json               # Vercel routing config
+└── ...config files           # Configuration files
+```
+
+## 🛠️ Setup and Installation
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm, yarn, or bun
+- Supabase account
+- Google Maps API key (optional, for location features)
+
+### Local Development
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YassinSalah100/eventx-studio.git
+   cd eventx-studio
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   bun install
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` with your Supabase credentials and other required variables:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   bun run dev
+   ```
+
+5. **Apply database migrations**
+   ```bash
+   npx supabase sql < fix_trigger_updated.sql
+   ```
+
+## 🚢 Deployment
+
+### What to Deploy
+
+When deploying EventX Studio, ensure the following key files are included:
+
+1. **Routing Configuration**:
+   - `vercel.json` - Handles client-side routing on Vercel
+   - `public/_redirects` - For Netlify compatibility
+
+2. **Mobile Compatibility Files**:
+   - `src/components/SeatSelector.tsx` - Enhanced mobile booking experience
+   - `src/pages/EventDetails.tsx` - Mobile-optimized booking dialog
+   - `src/components/Navbar.tsx` - Responsive navigation
+
+3. **Database Triggers**:
+   - Make sure to run `fix_trigger_updated.sql` on your Supabase instance
+
+### Deploying to Vercel
+
+1. **Configure Vercel**
+   - Connect your GitHub repository to Vercel
+   - Set environment variables in the Vercel dashboard (never commit `.env` files)
+   - Configure build settings (build command: `npm run build`, output directory: `dist`)
+
+2. **Deploy on Vercel**
+   ```bash
+   npm run build
+   npm run deploy
+   # or use Vercel CLI/GitHub integration
+   ```
+
+3. **Post-Deployment Verification**
+   - Verify that client-side routing works (no 404s on page refresh)
+   - Test mobile booking functionality
+   - Confirm seat selection works correctly
+
+## 📊 Database Structure
+
+The platform uses the following main tables:
+
+- **users**: Authentication and user information
+- **profiles**: Extended user profile data
+- **events**: Event details and metadata
+- **tickets**: Booking information with seat assignments
+- **reviews**: Event ratings and feedback
+
+Custom PostgreSQL triggers ensure:
+- Accurate seat availability tracking
+- Prevention of double-booking seats
+- Automatic synchronization between tickets and event availability
+
+## 📱 Mobile Optimization
+
+EventX Studio is now fully optimized for mobile devices with:
+
+- **Responsive Seat Selection**: Touch-friendly interface for selecting seats
+- **Mobile Booking Flow**: Special booking UI for small screens with fixed action buttons
+- **Adaptive Layouts**: Content reorganization based on screen size
+- **Touch-Optimized Controls**: Larger touch targets for mobile users
+- **Viewport-Aware Design**: No horizontal scrolling or content overflow
+
+## 🧪 Testing
+
+Run the test suite with:
+```bash
+npm test
+# or
+yarn test
+# or
+bun test
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License. See `LICENSE` for more information.
+
+---
+
+© 2025 EventX Studio. All rights reserved.
