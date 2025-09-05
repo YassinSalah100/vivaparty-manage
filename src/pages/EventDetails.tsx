@@ -657,7 +657,7 @@ const EventDetails = () => {
       
       {/* Booking Dialog */}
       <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-auto">
           {!bookingConfirmed ? (
             <>
               <DialogHeader>
@@ -671,23 +671,23 @@ const EventDetails = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Event</h3>
-                    <p className="font-medium">{event.title}</p>
+                    <p className="font-medium text-sm sm:text-base">{event.title}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Date & Time</h3>
-                    <p>{formatDate(event.event_date)}</p>
-                    <p>{formatTime(event.event_date)}</p>
+                    <p className="text-sm sm:text-base">{formatDate(event.event_date)}</p>
+                    <p className="text-sm sm:text-base">{formatTime(event.event_date)}</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Venue</h3>
-                    <p>{event.venue}</p>
+                    <p className="text-sm sm:text-base">{event.venue}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Price</h3>
-                    <p className="font-medium">${Number(event.price).toFixed(2)}</p>
+                    <p className="font-medium text-sm sm:text-base">${Number(event.price).toFixed(2)}</p>
                   </div>
                 </div>
                 
@@ -701,13 +701,13 @@ const EventDetails = () => {
                     selectedSeat={selectedSeat}
                   />
                   {selectedSeat ? (
-                    <p className="text-center mt-2 text-sm font-medium">Selected Seat: {selectedSeat}</p>
+                    <p className="text-center mt-2 mb-4 text-sm font-medium hidden sm:block">Selected Seat: {selectedSeat}</p>
                   ) : (
-                    <p className="text-center mt-2 text-sm text-muted-foreground">Please select a seat</p>
+                    <p className="text-center mt-2 mb-4 text-sm text-muted-foreground">Please select a seat</p>
                   )}
                 </div>
                 
-                <div className="bg-muted p-4 rounded-md">
+                <div className="bg-muted p-4 rounded-md mb-14 sm:mb-0">
                   <h3 className="font-medium mb-2">Important Notes</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Tickets are non-transferable</li>
@@ -717,18 +717,32 @@ const EventDetails = () => {
                 </div>
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="hidden sm:flex">
                 <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button 
                   className="gradient-primary text-white border-0" 
                   onClick={handleBookTicket}
-                  disabled={isLoading}
+                  disabled={isLoading || !selectedSeat}
                 >
                   {isLoading ? "Processing..." : "Confirm Booking"}
                 </Button>
               </DialogFooter>
+              
+              {/* Mobile fixed footer */}
+              <div className="fixed bottom-0 left-0 right-0 sm:hidden p-4 bg-background border-t border-border flex justify-between items-center gap-2 z-50">
+                <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button 
+                  className="gradient-primary text-white border-0 flex-1" 
+                  onClick={handleBookTicket}
+                  disabled={isLoading || !selectedSeat}
+                >
+                  {isLoading ? "Processing..." : "Confirm Booking"}
+                </Button>
+              </div>
             </>
           ) : (
             <>

@@ -20,6 +20,18 @@ const SeatSelector: React.FC<SeatSelectorProps> = ({
 }) => {
   // Add internal state to track if the selected seat became booked while we were selecting
   const [internalBookedSeats, setInternalBookedSeats] = useState<string[]>(bookedSeats);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  
+  // Detect if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640); // sm breakpoint in Tailwind
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Update internal booked seats when props change
   useEffect(() => {
@@ -57,7 +69,7 @@ const SeatSelector: React.FC<SeatSelectorProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4 sm:space-y-6 max-w-full overflow-x-auto">
+    <div className="flex flex-col items-center space-y-4 sm:space-y-6 max-w-full overflow-x-auto relative pb-16 sm:pb-0">
       <div className="w-full bg-muted p-1 sm:p-2 rounded-md flex items-center justify-center mb-2 sm:mb-4">
         <div className="w-1/2 h-1 sm:h-2 bg-primary rounded-md"></div>
       </div>
@@ -90,6 +102,30 @@ const SeatSelector: React.FC<SeatSelectorProps> = ({
           <span className="text-xs sm:text-sm">Selected</span>
         </div>
       </div>
+      
+      {/* Mobile-only sticky booking confirmation button */}
+      {isMobile && selectedSeat && (
+        <div className="fixed bottom-0 left-0 w-full p-4 bg-background border-t border-border shadow-lg z-50">
+          <div className="flex justify-between items-center mb-2">
+            <div className="font-medium">Seat: {selectedSeat}</div>
+          </div>
+          <Button 
+            className="w-full gradient-primary text-white border-0" 
+            onClick={() => {
+              // Close the modal on mobile by clicking outside
+              const dialogBackdrop = document.querySelector('[data-state="open"][role="dialog"]');
+              if (dialogBackdrop) {
+                const closeButton = dialogBackdrop.querySelector('[data-state="open"] button[aria-label="Close"]');
+                if (closeButton instanceof HTMLElement) {
+                  closeButton.click();
+                }
+              }
+            }}
+          >
+            Proceed to Booking
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
